@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2026 XephiraOS -->
+<resources>
+    <string name="app_name">Xephira Island</string>
+    <string name="island_service_channel">Dynamic Island</string>
+    <string name="island_service_running">Dynamic Island is active</string>
+    <string name="island_enabled">Enable Dynamic Island</string>
+    <string name="island_disabled">Dynamic Island disabled</string>
+    <string name="island_settings_title">Dynamic Island Settings</string>
+    <string name="media_playing">Now Playing</string>
+    <string name="media_paused">Paused</string>
+    <string name="incoming_call">Incoming Call</string>
+    <string name="active_call">On Call</string>
+    <string name="charging">Charging</string>
+    <string name="fast_charging">Fast Charging</string>
+    <string name="wireless_charging">Wireless Charging</string>
+    <string name="timer_running">Timer</string>
+    <string name="unknown_caller">Unknown</string>
+    <string name="tap_to_expand">Tap to expand</string>
+</resources>

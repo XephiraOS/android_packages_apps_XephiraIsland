@@ -1,0 +1,48 @@
+// Copyright (C) 2026 XephiraOS
+//
+// Licensed under the Apache License, Version 2.0
+
+android_app {
+    name: "XephiraIsland",
+    srcs: ["src/**/*.kt"],
+    resource_dirs: ["res"],
+    manifest: "AndroidManifest.xml",
+
+    static_libs: [
+        "androidx.core_core-ktx",
+        "androidx.lifecycle_lifecycle-runtime-ktx",
+        "androidx.lifecycle_lifecycle-service",
+        "androidx.compose.runtime_runtime",
+        "androidx.compose.ui_ui",
+        "androidx.compose.foundation_foundation",
+        "androidx.compose.material3_material3",
+        "androidx.compose.animation_animation",
+        "androidx.compose.material_material-icons-core",
+        "androidx.compose.material_material-icons-extended",
+        "com.google.android.material_material",
+        "kotlinx-coroutines-android",
+    ],
+
+    kotlincflags: [
+        "-Xjvm-default=all",
+    ],
+
+    platform_apis: true,
+    certificate: "platform",
+    privileged: true,
+    system_ext_specific: true,
+
+    optimize: {
+        proguard_flags_files: ["proguard-rules.pro"],
+    },
+
+    required: ["privapp_whitelist_com.xephira.island"],
+}
+
+prebuilt_etc {
+    name: "privapp_whitelist_com.xephira.island",
+    system_ext_specific: true,
+    sub_dir: "permissions",
+    src: "com.xephira.island.xml",
+    filename_from_src: true,
+}

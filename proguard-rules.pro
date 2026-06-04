@@ -1,0 +1,2 @@
+-keep class com.xephira.island.** { *; }
+-dontwarn androidx.compose.**
