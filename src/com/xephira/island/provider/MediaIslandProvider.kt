@@ -141,6 +141,8 @@ class MediaIslandProvider(
         val albumArt = metadata?.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
             ?: metadata?.getBitmap(MediaMetadata.METADATA_KEY_ART)
 
+        val accentColor = extractDominantColor(albumArt)
+
         val duration = metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
         val position = playbackState?.position ?: 0L
         val progress = if (duration > 0) (position.toFloat() / duration.toFloat()).coerceIn(0f, 1f) else -1f
@@ -150,7 +152,7 @@ class MediaIslandProvider(
             category = IslandCategory.MEDIA,
             title = title,
             subtitle = artist,
-            accentColor = Color(0xFF00E5FF),
+            accentColor = accentColor,
             progress = progress,
             expandedContent = {
                 MediaExpandedContent(
@@ -159,6 +161,7 @@ class MediaIslandProvider(
                     albumArt = albumArt,
                     isPlaying = isPlaying,
                     progress = progress,
+                    accentColor = accentColor,
                     onPlayPause = {
                         if (isPlaying) controller.transportControls.pause()
                         else controller.transportControls.play()
@@ -182,6 +185,38 @@ class MediaIslandProvider(
         }
     }
 
+    private fun extractDominantColor(bitmap: android.graphics.Bitmap?): Color {
+        if (bitmap == null) return Color(0xFF00E5FF)
+        try {
+            val scaled = android.graphics.Bitmap.createScaledBitmap(bitmap, 4, 4, false)
+            var sumR = 0
+            var sumG = 0
+            var sumB = 0
+            var count = 0
+            for (x in 0 until 4) {
+                for (y in 0 until 4) {
+                    val color = scaled.getPixel(x, y)
+                    val r = (color shr 16) and 0xFF
+                    val g = (color shr 8) and 0xFF
+                    val b = color and 0xFF
+                    val brightness = 0.299f * r + 0.587f * g + 0.114f * b
+                    if (brightness in 35.0f..220.0f) {
+                        sumR += r
+                        sumG += g
+                        sumB += b
+                        count++
+                    }
+                }
+            }
+            scaled.recycle()
+            if (count > 0) {
+                return Color(sumR / count, sumG / count, sumB / count)
+            }
+        } catch (_: Exception) {}
+        return Color(0xFF00E5FF)
+    }
+    }
+
     override fun onIslandTapped() {
         val controller = activeController ?: return
         val isPlaying = controller.playbackState?.state == PlaybackState.STATE_PLAYING
@@ -197,6 +232,7 @@ fun MediaExpandedContent(
     albumArt: android.graphics.Bitmap?,
     isPlaying: Boolean,
     progress: Float,
+    accentColor: Color,
     onPlayPause: () -> Unit,
     onNext: () -> Unit,
     onPrevious: () -> Unit,
@@ -221,7 +257,7 @@ fun MediaExpandedContent(
                         .clip(RoundedCornerShape(12.dp))
                         .border(
                             1.dp,
-                            Color(0xFF00A3FF).copy(alpha = 0.3f),
+                            accentColor.copy(alpha = 0.3f),
                             RoundedCornerShape(12.dp)
                         ),
                     contentScale = ContentScale.Crop,
@@ -258,7 +294,7 @@ fun MediaExpandedContent(
                     .fillMaxWidth()
                     .height(3.dp)
                     .clip(RoundedCornerShape(2.dp)),
-                color = Color(0xFF00E5FF),
+                color = accentColor,
                 trackColor = Color.White.copy(alpha = 0.1f),
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -282,7 +318,7 @@ fun MediaExpandedContent(
                 modifier = Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF00A3FF))
+                    .background(accentColor)
                     .clickable { onPlayPause() },
                 contentAlignment = Alignment.Center,
             ) {

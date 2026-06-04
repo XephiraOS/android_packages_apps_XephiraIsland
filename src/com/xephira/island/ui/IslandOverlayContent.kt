@@ -14,6 +14,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -149,6 +150,7 @@ fun IslandOverlayContent(
             IslandPill(
                 state = state,
                 onTap = onTap,
+                onDismiss = onDismiss,
             )
         }
     }
@@ -162,8 +164,21 @@ fun IslandOverlayContent(
 private fun IslandPill(
     state: IslandState,
     onTap: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
     val isExpanded = state.displayMode == IslandDisplayMode.EXPANDED
+
+    // ── Swipe gestures to dismiss ──
+    var offsetX by remember { mutableStateOf(0f) }
+    val dragLimit = 180f // swipe limit in pixels to trigger dismiss
+    val animatedOffsetX by animateFloatAsState(
+        targetValue = offsetX,
+        animationSpec = spring(
+            dampingRatio = 0.8f,
+            stiffness = 250f,
+        ),
+        label = "dragOffset"
+    )
 
     // ── Liquid size morphing ──
     // Use raw float animation with custom spring for maximum fluidity
@@ -219,10 +234,13 @@ private fun IslandPill(
             modifier = Modifier
                 .width(animW.dp + 8.dp)
                 .then(
-                    if (isExpanded) Modifier.wrapContentHeight()
+                    if (isExpanded) Modifier.wrapContentHeight().animateContentSize(LiquidSizeSpec)
                     else Modifier.height(animH.dp + 8.dp)
                 )
-                .graphicsLayer { alpha = haloAlpha }
+                .graphicsLayer {
+                    alpha = haloAlpha
+                    translationX = animatedOffsetX
+                }
                 .clip(pillShape)
                 .background(IslandGlowCyan.copy(alpha = 0.15f))
                 .blur(16.dp)
@@ -233,12 +251,33 @@ private fun IslandPill(
             modifier = Modifier
                 .width(animW.dp)
                 .then(
-                    if (isExpanded) Modifier.wrapContentHeight()
+                    if (isExpanded) Modifier.wrapContentHeight().animateContentSize(LiquidSizeSpec)
                     else Modifier.height(animH.dp)
                 )
                 .graphicsLayer {
                     scaleX = pressScale
                     scaleY = pressScale
+                    translationX = animatedOffsetX
+                    alpha = (1f - (Math.abs(animatedOffsetX) / 360f)).coerceIn(0f, 1f)
+                }
+                .pointerInput(isExpanded) {
+                    if (!isExpanded) {
+                        detectDragGestures(
+                            onDragEnd = {
+                                if (Math.abs(offsetX) > dragLimit) {
+                                    onDismiss()
+                                }
+                                offsetX = 0f
+                            },
+                            onDragCancel = {
+                                offsetX = 0f
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                offsetX += dragAmount.x
+                            }
+                        )
+                    }
                 }
                 .clip(pillShape)
                 .background(

@@ -13,7 +13,10 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.IBinder
 import android.provider.Settings
 import com.xephira.island.provider.*
@@ -44,6 +47,15 @@ class IslandService : Service() {
         const val SETTING_ENABLED = "xephira_dynamic_island_enabled"
     }
 
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_OFF -> stopProviders()
+                Intent.ACTION_SCREEN_ON -> startProviders()
+            }
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
@@ -54,6 +66,12 @@ class IslandService : Service() {
         initProviders()
         startProviders()
         observeProviders()
+
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_SCREEN_OFF)
+        }
+        registerReceiver(screenReceiver, filter)
 
         overlayManager = IslandOverlayManager(this, _islandState)
         overlayManager?.attachOverlay()
@@ -71,6 +89,9 @@ class IslandService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        try {
+            unregisterReceiver(screenReceiver)
+        } catch (_: Exception) {}
         overlayManager?.detachOverlay()
         overlayManager = null
         stopProviders()
