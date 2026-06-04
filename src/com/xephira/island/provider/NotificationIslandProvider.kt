@@ -9,21 +9,43 @@
  */
 package com.xephira.island.provider
 
+import android.app.Notification
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 
 /**
  * Notification listener service that enables the media provider
- * to access active media sessions. Also intercepts high-priority
- * notifications to display in the Dynamic Island.
+ * to access active media sessions and intercepts navigation notifications
+ * to display turn-by-turn directions in the Dynamic Island.
  */
 class NotificationIslandProvider : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
-        // Future: intercept and forward specific notifications to island
+        val activeSbn = sbn ?: return
+        val notification = activeSbn.notification ?: return
+
+        val isNav = notification.category == Notification.CATEGORY_NAVIGATION ||
+                activeSbn.packageName.contains("maps") ||
+                activeSbn.packageName.contains("navigation")
+
+        if (isNav) {
+            val extras = notification.extras
+            val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
+            val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
+            val icon = notification.getLargeIcon() ?: notification.smallIcon
+
+            if (title.isNotEmpty()) {
+                NavigationTracker.updateNav(
+                    NavData(title = title, text = text, icon = icon)
+                )
+            }
+        }
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
-        // Future: remove island content when notification is dismissed
+        val activeSbn = sbn ?: return
+        if (activeSbn.packageName.contains("maps") || activeSbn.packageName.contains("navigation")) {
+            NavigationTracker.updateNav(null)
+        }
     }
 }

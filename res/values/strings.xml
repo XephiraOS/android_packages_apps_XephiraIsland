@@ -17,4 +17,9 @@
     <string name="timer_running">Timer</string>
     <string name="unknown_caller">Unknown</string>
     <string name="tap_to_expand">Tap to expand</string>
+    <string name="torch_active">Flashlight Active</string>
+    <string name="turn_off_torch">Turn Off Flashlight</string>
+    <string name="volume_media">Media Volume</string>
+    <string name="volume_ring">Ring Volume</string>
+    <string name="navigation_active">Navigation Directions</string>
 </resources>

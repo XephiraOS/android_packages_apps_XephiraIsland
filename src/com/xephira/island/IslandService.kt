@@ -85,6 +85,9 @@ class IslandService : Service() {
         providers.add(ChargingIslandProvider(this))
         providers.add(CallIslandProvider(this))
         providers.add(TimerIslandProvider(this))
+        providers.add(TorchIslandProvider(this))
+        providers.add(VolumeIslandProvider(this))
+        providers.add(MapsIslandProvider(this))
     }
 
     private fun startProviders() {

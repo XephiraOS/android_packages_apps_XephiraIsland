@@ -31,6 +31,8 @@ enum class IslandDisplayMode {
  */
 enum class IslandCategory(val priority: Int) {
     PHONE_CALL(100),
+    TORCH(95),
+    VOLUME(90),
     TIMER(80),
     NAVIGATION(70),
     MEDIA(50),

@@ -584,6 +584,8 @@ private fun CategoryIcon(
 ) {
     val icon = when (category) {
         IslandCategory.PHONE_CALL -> Icons.Filled.Phone
+        IslandCategory.TORCH -> Icons.Filled.FlashlightOn
+        IslandCategory.VOLUME -> Icons.Filled.VolumeUp
         IslandCategory.TIMER -> Icons.Filled.Timer
         IslandCategory.NAVIGATION -> Icons.Filled.Navigation
         IslandCategory.MEDIA -> Icons.Filled.MusicNote
