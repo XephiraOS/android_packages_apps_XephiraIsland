@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.xephira.island.IslandCategory
@@ -155,13 +156,45 @@ fun ChargingExpandedContent(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(
-                Icons.Filled.BoltOutlined,
-                contentDescription = null,
-                tint = Color(0xFF00E676).copy(alpha = pulseAlpha),
-                modifier = Modifier.size(32.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.size(54.dp)
+            ) {
+                val rotation by infiniteTransition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = 360f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(2000, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart
+                    ),
+                    label = "ringRotate"
+                )
+                androidx.compose.foundation.Canvas(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .graphicsLayer { rotationZ = rotation }
+                ) {
+                    drawCircle(
+                        brush = Brush.sweepGradient(
+                            colors = listOf(
+                                Color(0xFF00E676).copy(alpha = 0.05f),
+                                Color(0xFF00E5FF).copy(alpha = 0.8f),
+                                Color(0xFF00E676).copy(alpha = 0.8f),
+                                Color(0xFF00E676).copy(alpha = 0.05f),
+                            )
+                        ),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.dp.toPx())
+                    )
+                }
+
+                Icon(
+                    Icons.Filled.BoltOutlined,
+                    contentDescription = null,
+                    tint = Color(0xFF00E676),
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
             Text(
                 text = "$percentage%",
                 style = MaterialTheme.typography.headlineMedium,
