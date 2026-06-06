@@ -200,9 +200,25 @@ private fun IslandPill(
     }
     val targetRadius = if (isExpanded) 28f else 50f
 
-    val animW by animateFloatAsState(targetW, LiquidSizeSpec, label = "w")
-    val animH by animateFloatAsState(targetH, LiquidSizeSpec, label = "h")
-    val animRadius by animateFloatAsState(targetRadius, LiquidSizeSpec, label = "r")
+    val currentSpringSpec = remember(state.displayMode) {
+        if (state.displayMode == IslandDisplayMode.EXPANDED) {
+            spring<Float>(
+                dampingRatio = 0.65f, // Liquid bounce when expanding
+                stiffness = 150f,     // Softer and more fluid
+                visibilityThreshold = 0.5f
+            )
+        } else {
+            spring<Float>(
+                dampingRatio = 0.8f,  // Snappy, controlled damping when collapsing
+                stiffness = 320f,     // Faster transition back to compact
+                visibilityThreshold = 0.5f
+            )
+        }
+    }
+
+    val animW by animateFloatAsState(targetW, currentSpringSpec, label = "w")
+    val animH by animateFloatAsState(targetH, currentSpringSpec, label = "h")
+    val animRadius by animateFloatAsState(targetRadius, currentSpringSpec, label = "r")
 
     // ── Tap press feedback — squish effect ──
     val interactionSource = remember { MutableInteractionSource() }
@@ -238,7 +254,7 @@ private fun IslandPill(
             modifier = Modifier
                 .width(animW.dp + 8.dp)
                 .then(
-                    if (isExpanded) Modifier.wrapContentHeight().animateContentSize(LiquidSizeSpec)
+                    if (isExpanded) Modifier.wrapContentHeight().animateContentSize(currentSpringSpec)
                     else Modifier.height(animH.dp + 8.dp)
                 )
                 .graphicsLayer {
@@ -255,7 +271,7 @@ private fun IslandPill(
             modifier = Modifier
                 .width(animW.dp)
                 .then(
-                    if (isExpanded) Modifier.wrapContentHeight().animateContentSize(LiquidSizeSpec)
+                    if (isExpanded) Modifier.wrapContentHeight().animateContentSize(currentSpringSpec)
                     else Modifier.height(animH.dp)
                 )
                 .graphicsLayer {
@@ -278,7 +294,7 @@ private fun IslandPill(
                             },
                             onDrag = { change, dragAmount ->
                                 change.consume()
-                                offsetX += dragAmount.x
+                                offsetX += dragAmount.x * (1f - (Math.abs(offsetX) / 250f)).coerceIn(0.2f, 1f)
                             }
                         )
                     }
