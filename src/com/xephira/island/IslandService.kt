@@ -109,6 +109,7 @@ class IslandService : Service() {
         providers.add(TorchIslandProvider(this))
         providers.add(VolumeIslandProvider(this))
         providers.add(MapsIslandProvider(this))
+        providers.add(PrivacyIslandProvider(this))
     }
 
     private fun startProviders() {
