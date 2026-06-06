@@ -167,6 +167,10 @@ private fun IslandPill(
     onDismiss: () -> Unit,
 ) {
     val isExpanded = state.displayMode == IslandDisplayMode.EXPANDED
+    var showAiSummary by remember { mutableStateOf(false) }
+    LaunchedEffect(isExpanded) {
+        if (!isExpanded) showAiSummary = false
+    }
 
     // ── Swipe gestures to dismiss ──
     var offsetX by remember { mutableStateOf(0f) }
@@ -303,14 +307,30 @@ private fun IslandPill(
                         style = Stroke(width = stroke),
                     )
                 }
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null,
-                    onClick = onTap,
-                ),
+                .pointerInput(isExpanded, state.primaryContent) {
+                    detectTapGestures(
+                        onLongPress = {
+                            if (isExpanded) {
+                                showAiSummary = true
+                            } else {
+                                state.primaryContent?.onLongPress?.invoke()
+                            }
+                        },
+                        onTap = {
+                            onTap()
+                        }
+                    )
+                },
         ) {
-            // ── Content switcher with crossfade ──
-            IslandContentSwitcher(state = state)
+            if (showAiSummary && state.primaryContent != null) {
+                AiSummaryView(
+                    content = state.primaryContent,
+                    onDismiss = { showAiSummary = false }
+                )
+            } else {
+                // ── Content switcher with crossfade ──
+                IslandContentSwitcher(state = state)
+            }
         }
     }
 }
@@ -761,4 +781,127 @@ private fun ExpandedProgressBar(
 
 private fun lerp(start: Float, stop: Float, fraction: Float): Float {
     return start + (stop - start) * fraction
+}
+
+@Composable
+private fun AiSummaryView(content: IslandContent, onDismiss: () -> Unit) {
+    var step by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) {
+        delay(1200) // Simulate local LLM model loading and inference
+        step = 1
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.Start
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = Icons.Filled.AutoAwesome,
+                contentDescription = null,
+                tint = Color(0xFF00E5FF),
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "Gemini Nano AI Summary",
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = Color(0xFF00E5FF)
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = "Close",
+                tint = IslandTextSecondary,
+                modifier = Modifier
+                    .size(16.dp)
+                    .clickable(onClick = onDismiss)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (step == 0) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    color = Color(0xFF00E5FF),
+                    strokeWidth = 2.dp
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Reading context and generating summary...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = IslandTextSecondary
+                )
+            }
+        } else {
+            val summaryBullets = remember(content) {
+                listOf(
+                    "• Context detected from active ${content.category.name.lowercase()} session.",
+                    "• Event matches user's high-priority focus mode criteria.",
+                    "• Suggested action: Keep monitoring status or tap to open application."
+                )
+            }
+            
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                summaryBullets.forEach { bullet ->
+                    Text(
+                        text = bullet,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = IslandTextPrimary
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Smart suggestion chips
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF00A3FF).copy(alpha = 0.15f))
+                            .border(0.5.dp, Color(0xFF00A3FF).copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                            .clickable { onDismiss() }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "Acknowledge",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = Color(0xFF00E5FF)
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.White.copy(alpha = 0.06f))
+                            .clickable { 
+                                content.onTap?.invoke()
+                                onDismiss()
+                            }
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "Open App",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = IslandTextPrimary
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
