@@ -110,6 +110,7 @@ class IslandService : Service() {
         providers.add(VolumeIslandProvider(this))
         providers.add(MapsIslandProvider(this))
         providers.add(PrivacyIslandProvider(this))
+        providers.add(SmartContextProvider(this))
     }
 
     private fun startProviders() {
