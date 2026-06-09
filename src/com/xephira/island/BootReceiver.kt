@@ -25,7 +25,11 @@ class BootReceiver : BroadcastReceiver() {
             val enabled = Settings.Secure.getInt(
                 context.contentResolver,
                 IslandService.SETTING_ENABLED,
-                1  // Enabled by default
+                1
+            ) == 1 && Settings.System.getInt(
+                context.contentResolver,
+                IslandService.SETTING_ENABLED_SYS,
+                1
             ) == 1
 
             if (enabled) {

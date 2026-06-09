@@ -45,6 +45,10 @@ class IslandService : Service() {
 
         /** Settings.Secure key to enable/disable the island */
         const val SETTING_ENABLED = "xephira_dynamic_island_enabled"
+
+        /** Settings.System keys for DerpSpace settings compatibility */
+        const val SETTING_ENABLED_SYS = "island_notification"
+        const val SETTING_MEDIA_ENABLED_SYS = "island_notification_now_playing"
     }
 
     private val screenReceiver = object : BroadcastReceiver() {
@@ -53,6 +57,12 @@ class IslandService : Service() {
                 Intent.ACTION_SCREEN_OFF -> stopProviders()
                 Intent.ACTION_SCREEN_ON -> startProviders()
             }
+        }
+    }
+
+    private val settingsObserver = object : android.database.ContentObserver(android.os.Handler(android.os.Looper.getMainLooper())) {
+        override fun onChange(selfChange: Boolean) {
+            checkSettings()
         }
     }
 
@@ -73,8 +83,41 @@ class IslandService : Service() {
         }
         registerReceiver(screenReceiver, filter)
 
-        overlayManager = IslandOverlayManager(this, _islandState)
-        overlayManager?.attachOverlay()
+        // Register content observers for settings
+        contentResolver.registerContentObserver(
+            Settings.Secure.getUriFor(SETTING_ENABLED),
+            false,
+            settingsObserver
+        )
+        contentResolver.registerContentObserver(
+            Settings.System.getUriFor(SETTING_ENABLED_SYS),
+            false,
+            settingsObserver
+        )
+        contentResolver.registerContentObserver(
+            Settings.System.getUriFor(SETTING_MEDIA_ENABLED_SYS),
+            false,
+            settingsObserver
+        )
+
+        // Initial check
+        checkSettings()
+    }
+
+    private fun checkSettings() {
+        val enabled = Settings.Secure.getInt(contentResolver, SETTING_ENABLED, 1) == 1 &&
+                      Settings.System.getInt(contentResolver, SETTING_ENABLED_SYS, 1) == 1
+
+        if (!enabled) {
+            overlayManager?.detachOverlay()
+            overlayManager = null
+            stopSelf()
+        } else {
+            if (overlayManager == null) {
+                overlayManager = IslandOverlayManager(this, _islandState)
+                overlayManager?.attachOverlay()
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -89,6 +132,9 @@ class IslandService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        try {
+            contentResolver.unregisterContentObserver(settingsObserver)
+        } catch (_: Exception) {}
         try {
             unregisterReceiver(screenReceiver)
         } catch (_: Exception) {}
@@ -134,8 +180,17 @@ class IslandService : Service() {
             }
 
             combine(flows) { contentArray ->
+                val showMedia = Settings.System.getInt(
+                    contentResolver,
+                    SETTING_MEDIA_ENABLED_SYS,
+                    1
+                ) == 1
+
                 val activeContents = contentArray
                     .mapNotNull { (_, content) -> content }
+                    .filter { content ->
+                        if (!showMedia && content.category == IslandCategory.MEDIA) false else true
+                    }
                     .sortedByDescending { it.category.priority }
 
                 val primary = activeContents.firstOrNull()

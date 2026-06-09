@@ -215,7 +215,6 @@ class MediaIslandProvider(
         } catch (_: Exception) {}
         return Color(0xFF00E5FF)
     }
-    }
 
     override fun onIslandTapped() {
         val controller = activeController ?: return

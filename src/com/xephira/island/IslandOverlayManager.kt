@@ -41,6 +41,7 @@ class IslandOverlayManager(
     private var windowManager: WindowManager? = null
     private var overlayView: ComposeView? = null
     private var lifecycleOwner: IslandLifecycleOwner? = null
+    private val pillBounds = android.graphics.Rect()
 
     fun attachOverlay() {
         windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
@@ -96,11 +97,42 @@ class IslandOverlayManager(
                         collapseIntent.action = IslandService.ACTION_COLLAPSE
                         context.startService(collapseIntent)
                     },
+                    onPillBoundsChanged = { rect ->
+                        pillBounds.set(rect)
+                        // Request a layout/draw pass to update insets
+                        postInvalidate()
+                    }
                 )
             }
         }
 
-        // Update flags when expanded to receive touch events
+        // Set touchable region listener for dynamic system touch interception
+        overlayView?.viewTreeObserver?.addOnComputeInternalInsetsListener { insets ->
+            insets.contentInsets.setEmpty()
+            insets.visibleInsets.setEmpty()
+            insets.setTouchableInsets(android.view.ViewTreeObserver.InternalInsetsInfo.TOUCHABLE_INSETS_REGION)
+            
+            val currentMode = islandState.value.displayMode
+            if (currentMode == IslandDisplayMode.EXPANDED) {
+                // When expanded, the whole top area is touchable (to capture outside dismiss tap)
+                val density = context.resources.displayMetrics.density
+                val scrimHeightPx = (600 * density).toInt()
+                insets.touchableRegion.set(
+                    0,
+                    0,
+                    context.resources.displayMetrics.widthPixels,
+                    scrimHeightPx
+                )
+            } else if (currentMode == IslandDisplayMode.HIDDEN) {
+                // Empty touchable region when hidden
+                insets.touchableRegion.setEmpty()
+            } else {
+                // Only the compact/split pill is touchable.
+                // Rest of the screen remains completely click-through.
+                insets.touchableRegion.set(pillBounds)
+            }
+        }
+
         try {
             windowManager?.addView(overlayView, params)
         } catch (e: Exception) {

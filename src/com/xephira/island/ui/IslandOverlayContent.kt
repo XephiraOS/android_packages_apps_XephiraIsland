@@ -42,6 +42,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -96,6 +98,7 @@ fun IslandOverlayContent(
     state: IslandState,
     onTap: () -> Unit,
     onDismiss: () -> Unit,
+    onPillBoundsChanged: (android.graphics.Rect) -> Unit = {},
 ) {
     val isVisible = state.displayMode != IslandDisplayMode.HIDDEN
 
@@ -151,7 +154,22 @@ fun IslandOverlayContent(
                 state = state,
                 onTap = onTap,
                 onDismiss = onDismiss,
+                modifier = Modifier.onGloballyPositioned { coordinates ->
+                    val position = coordinates.positionInWindow()
+                    val size = coordinates.size
+                    val rect = android.graphics.Rect(
+                        position.x.toInt(),
+                        position.y.toInt(),
+                        (position.x + size.width).toInt(),
+                        (position.y + size.height).toInt()
+                    )
+                    onPillBoundsChanged(rect)
+                }
             )
+        }
+    } else {
+        LaunchedEffect(Unit) {
+            onPillBoundsChanged(android.graphics.Rect())
         }
     }
 }
@@ -165,6 +183,7 @@ private fun IslandPill(
     state: IslandState,
     onTap: () -> Unit,
     onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val isExpanded = state.displayMode == IslandDisplayMode.EXPANDED
     var showAiSummary by remember { mutableStateOf(false) }
@@ -248,7 +267,7 @@ private fun IslandPill(
 
     val pillShape = RoundedCornerShape(animRadius.dp)
 
-    Box(contentAlignment = Alignment.TopCenter) {
+    Box(contentAlignment = Alignment.TopCenter, modifier = modifier) {
         // ── Layer 1: Outer halo blur ──
         Box(
             modifier = Modifier
